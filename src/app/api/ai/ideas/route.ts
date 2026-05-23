@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+const ai = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
 export async function POST(req: Request) {
@@ -16,24 +16,18 @@ export async function POST(req: Request) {
       );
     }
 
-    if (openai) {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an expert short-form video strategist (TikTok/Reels/Shorts). Output an array of exactly 10 video ideas in JSON format. Each item must have: 'ideaText' (the core concept), 'hook' (first 3 seconds attention grabber), and 'script' (full voiceover narration up to 45 seconds).",
-          },
-          {
-            role: "user",
-            content: `Generate 10 trending short-form video ideas for the "${niche}" niche. Return in JSON format with a single key "ideas" containing the array of objects.`,
-          },
-        ],
-        response_format: { type: "json_object" },
+    if (ai) {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Generate 10 trending short-form video ideas for the "${niche}" niche. Return in JSON format with a single key "ideas" containing the array of objects.`,
+        config: {
+          systemInstruction:
+            "You are an expert short-form video strategist (TikTok/Reels/Shorts). Output an array of exactly 10 video ideas in JSON format. Each item must have: 'ideaText' (the core concept), 'hook' (first 3 seconds attention grabber), and 'script' (full voiceover narration up to 45 seconds).",
+          responseMimeType: "application/json",
+        },
       });
 
-      const parsed = JSON.parse(response.choices[0].message.content || "{}");
+      const parsed = JSON.parse(response.text || "{}");
       return NextResponse.json(parsed.ideas || []);
     } else {
       // High-quality mock response array

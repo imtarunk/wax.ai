@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+const ai = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
 export async function POST(req: Request) {
@@ -18,24 +18,18 @@ export async function POST(req: Request) {
 
     const promptTone = tone || "professional";
 
-    if (openai) {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a premium social media copywriter and growth expert. Generate a high-converting caption, popular high-traffic hashtags, and a powerful scroll-stopping hook.",
-          },
-          {
-            role: "user",
-            content: `Create a social media caption for this description: "${description}" using a "${promptTone}" tone. Return JSON format with three fields: "hook", "caption", and "hashtags" (as a space-separated string).`,
-          },
-        ],
-        response_format: { type: "json_object" },
+    if (ai) {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Create a social media caption for this description: "${description}" using a "${promptTone}" tone. Return JSON format with three fields: "hook", "caption", and "hashtags" (as a space-separated string).`,
+        config: {
+          systemInstruction:
+            "You are a premium social media copywriter and growth expert. Generate a high-converting caption, popular high-traffic hashtags, and a powerful scroll-stopping hook.",
+          responseMimeType: "application/json",
+        },
       });
 
-      const parsed = JSON.parse(response.choices[0].message.content || "{}");
+      const parsed = JSON.parse(response.text || "{}");
       return NextResponse.json(parsed);
     } else {
       // High-fidelity fallback simulated growth results

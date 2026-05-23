@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+const ai = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
 export async function POST(req: Request) {
@@ -16,23 +16,17 @@ export async function POST(req: Request) {
       );
     }
 
-    if (openai) {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an automated brand coordinator replying to client inquiries on IG/LinkedIn/Twitter. Output a friendly, professional response that replies to their inquiry. Keep it brief, conversational, and direct.",
-          },
-          {
-            role: "user",
-            content: `Suggest a reply to this DM: "${incomingMessage}" based on matching keyword/intent: "${keyword || "general inquiries"}".`,
-          },
-        ],
+    if (ai) {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Suggest a reply to this DM: "${incomingMessage}" based on matching keyword/intent: "${keyword || "general inquiries"}".`,
+        config: {
+          systemInstruction:
+            "You are an automated brand coordinator replying to client inquiries on IG/LinkedIn/Twitter. Output a friendly, professional response that replies to their inquiry. Keep it brief, conversational, and direct.",
+        },
       });
 
-      return NextResponse.json({ reply: response.choices[0].message.content });
+      return NextResponse.json({ reply: response.text });
     } else {
       let suggestedReply = "Hey there! Thanks so much for reaching out. We've received your message and our team will get back to you with all the details shortly! Have a great day! ✨";
       
